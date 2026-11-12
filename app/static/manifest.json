@@ -1,0 +1,21 @@
+{
+  "short_name": "Clinique Rif Nador",
+  "name": "Clinique Médico-Chirurgicale du Rif - Nador (SIH)",
+  "icons": [
+    {
+      "src": "/static/img/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/static/img/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#064e3b",
+  "theme_color": "#059669",
+  "display": "standalone",
+  "orientation": "portrait-primary"
+}

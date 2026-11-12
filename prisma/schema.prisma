@@ -1,0 +1,353 @@
+// Prisma schema for Clinique Médico-Chirurgicale du Rif - Nador
+// 100% compatible SQLite (Local) & PostgreSQL (Neon / Supabase Cloud)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // Set to "postgresql" for Neon/Supabase cloud deployment
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   // ADMIN, DOCTOR, NURSE, RECEPTIONIST, PHARMACIST, LAB_TECH
+  specialty    String?  // Ex: Cardiologie, Pédiatrie, Chirurgie, Médecine Générale
+  phone        String?
+  doctorType   String?  // PERMANENT, VACATAIRE
+  feeRate      Float    @default(70.0) // 70% rétrocession médecin
+  isActive     Boolean  @default(true)
+  cndpConsent  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  consultations   Consultation[]
+  admissions      Admission[]
+  shifts          StaffShift[]
+}
+
+model Patient {
+  id              String   @id @default(uuid())
+  patientNumber   String   @unique // Format: CNR-2026-XXXX
+  cin             String   @unique // Carte d'Identité Nationale (e.g. S123456, Z98765)
+  firstNameFr     String
+  lastNameFr      String
+  firstNameAr     String?
+  lastNameAr      String?
+  birthDate       DateTime
+  gender          String   // M, F
+  phone           String
+  email           String?
+  address         String?
+  neighborhood    String   // Quartier Nador: Hay Al Matar, Bouizazarène, Selouane, Beni Ansar, etc.
+  bloodGroup      String?  // A+, A-, B+, B-, AB+, AB-, O+, O-
+  allergies       String?  // Allergies connues (Pénicilline, etc.)
+  medicalHistory  String?  // Antécédents médicaux (Diabète, HTA...)
+  surgicalHistory String?  // Antécédents chirurgicaux
+  mutuelleType    String   @default("PRIVE") // CNOPS, CNSS, FAR, MGPAP, SAHAM, WAFA, ATLANTA, RMA, PRIVE
+  mutuelleNumber  String?
+  mutuelleRate    Float    @default(0.0) // Ex: 80% (CNOPS), 70% (CNSS), 0% (Privé)
+  emergencyContact String? // Nom et Téléphone personne à contacter
+  isArchived      Boolean  @default(false)
+  archivedAt      DateTime?
+  archivedReason  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  waitingQueue    WaitingRoom[]
+  appointments    Appointment[]
+  vitalSigns      VitalSigns[]
+  consultations   Consultation[]
+  admissions      Admission[]
+  invoices        Invoice[]
+  documents       MedicalDocument[]
+}
+
+model WaitingRoom {
+  id               String   @id @default(uuid())
+  patientId        String
+  patient          Patient  @relation(fields: [patientId], references: [id])
+  doctorId         String?
+  status           String   @default("WAITING") // WAITING, TRIAGE, IN_CONSULTATION, IN_EXAM, COMPLETED
+  priority         String   @default("NORMAL")  // NORMAL, URGENT, ELDERLY, PREGNANT
+  arrivalTime      DateTime @default(now())
+  triageTime       DateTime?
+  consultStartTime DateTime?
+  completedTime    DateTime?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Appointment {
+  id           String   @id @default(uuid())
+  patientId    String
+  patient      Patient  @relation(fields: [patientId], references: [id])
+  doctorId     String
+  doctorName   String
+  specialty    String
+  date         DateTime
+  timeSlot     String   // e.g. "09:30"
+  status       String   @default("SCHEDULED") // SCHEDULED, CONFIRMED, COMPLETED, CANCELLED
+  reason       String
+  whatsappSent Boolean  @default(false)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model VitalSigns {
+  id           String   @id @default(uuid())
+  patientId    String
+  patient      Patient  @relation(fields: [patientId], references: [id])
+  recordedBy   String   // Nurse Name
+  systolicBP   Int?     // mmHg (Tension artérielle systolique, ex: 120)
+  diastolicBP  Int?     // mmHg (Tension artérielle diastolique, ex: 80)
+  heartRate    Int?     // bpm (Pouls, ex: 72)
+  temperature  Float?   // °C (ex: 37.2)
+  weight       Float?   // kg (ex: 74.5)
+  height       Float?   // cm (ex: 175)
+  bmi          Float?   // Indice de Masse Corporelle calculé
+  bmiStatus    String?  // Poids Normal, Surpoids, Obésité
+  spo2         Int?     // % Saturation Oxygène (ex: 98)
+  bloodGlucose Float?   // g/L (Glycémie, ex: 1.05)
+  painLevel    Int?     // 0 à 10
+  notes        String?
+  createdAt    DateTime @default(now())
+}
+
+model Consultation {
+  id               String   @id @default(uuid())
+  patientId        String
+  patient          Patient  @relation(fields: [patientId], references: [id])
+  doctorId         String
+  doctor           User     @relation(fields: [doctorId], references: [id])
+  date             DateTime @default(now())
+  reason           String
+  symptoms         String?
+  examination      String?
+  cim10Code        String?  // Code CIM-10 (e.g. I10, E11.9, J00)
+  cim10Description String?  // Description diagnostique CIM-10
+  diagnosis        String
+  clinicalNotes    String?
+  feeAmount        Float    @default(250.0) // Tarif consultation en MAD
+  isArchived       Boolean  @default(false)
+  archivedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  prescriptions    Prescription[]
+  invoices         Invoice[]
+}
+
+model Prescription {
+  id             String             @id @default(uuid())
+  consultationId String?
+  consultation   Consultation?      @relation(fields: [consultationId], references: [id])
+  patientId      String
+  doctorId       String
+  date           DateTime           @default(now())
+  qrCodeData     String             // URL or encoded payload for verification
+  instructions   String?
+  isArchived     Boolean            @default(false)
+  createdAt      DateTime           @default(now())
+
+  items          PrescriptionItem[]
+}
+
+model PrescriptionItem {
+  id                String       @id @default(uuid())
+  prescriptionId    String
+  prescription      Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medicationName    String       // e.g. "Amoxicilline 1g"
+  dosage            String       // e.g. "1 comprimé"
+  frequency         String       // e.g. "3 fois par jour après repas"
+  duration          String       // e.g. "7 jours"
+  precautions       String?      // e.g. "Ne pas interrompre sans avis médical"
+  allowSubstitution Boolean      @default(true)
+}
+
+model MedicalDocument {
+  id          String   @id @default(uuid())
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  type        String   // ORDONNANCE, CERTIFICAT, BILAN_DEMANDE, LETTRE_ORIENTATION, RADIO, SCANNER, LAB_RESULT, CIN_SCAN, PEC_MUTUELLE, CONSENT_FORM
+  title       String
+  description String?
+  fileUrl     String?
+  fileData    String?  // Base64 or metadata
+  doctorId    String?
+  isArchived  Boolean  @default(false)
+  archivedAt  DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model Room {
+  id         String   @id @default(uuid())
+  roomNumber String   @unique // e.g. "Chambre 101", "USI-01", "Bloc A"
+  department String   // USI, CHIRURGIE, MEDECINE, MATERNITE, AMBULATOIRE, BLOC
+  floor      Int      @default(1)
+  dailyRate  Float    @default(500.0) // Tarif journalier en MAD
+  createdAt  DateTime @default(now())
+
+  beds       Bed[]
+}
+
+model Bed {
+  id         String   @id @default(uuid())
+  roomId     String
+  room       Room     @relation(fields: [roomId], references: [id])
+  bedNumber  String   // e.g. "Lit 1", "Lit 2"
+  status     String   @default("AVAILABLE") // AVAILABLE, OCCUPIED, CLEANING, RESERVED
+  notes      String?
+  updatedAt  DateTime @updatedAt
+
+  admissions Admission[]
+}
+
+model Admission {
+  id                String    @id @default(uuid())
+  patientId         String
+  patient           Patient   @relation(fields: [patientId], references: [id])
+  bedId             String
+  bed               Bed       @relation(fields: [bedId], references: [id])
+  admissionDate     DateTime  @default(now())
+  dischargeDate     DateTime?
+  admittingDoctorId String
+  doctor            User      @relation(fields: [admittingDoctorId], references: [id])
+  reason            String
+  surgicalActs      String?   // Actes chirurgicaux réalisés (ex: Appendicectomie)
+  status            String    @default("ACTIVE") // ACTIVE, DISCHARGED, CANCELLED
+  dischargeSummary  String?   // Fiche de sortie et recommandations
+  totalStayCost     Float     @default(0.0)
+  isArchived        Boolean   @default(false)
+  archivedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  invoices          Invoice[]
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  invoiceNumber  String        @unique // e.g. "FACT-2026-0001"
+  patientId      String
+  patient        Patient       @relation(fields: [patientId], references: [id])
+  consultationId String?
+  consultation   Consultation? @relation(fields: [consultationId], references: [id])
+  admissionId    String?
+  admission      Admission?    @relation(fields: [admissionId], references: [id])
+  date           DateTime      @default(now())
+  status         String        @default("PAID") // PENDING, PAID, PARTIAL, CANCELLED
+  totalAmount    Float         // Total TTC en MAD
+  mutuelleAmount Float         @default(0.0) // Part Tiers-Payant / Mutuelle
+  patientShare   Float         // Part Patient / Ticket Modérateur
+  mutuelleType   String        @default("PRIVE") // CNOPS, CNSS, FAR, etc.
+  paymentMethod  String        @default("CASH") // CASH, CARD, CHECK, TRANSFER
+  notes          String?
+  isArchived     Boolean       @default(false)
+  archivedAt     DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  items          InvoiceItem[]
+  payments       Payment[]
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  actCode     String  // Code NGAP (e.g. CS, K50, AMI, BIO)
+  description String
+  quantity    Int     @default(1)
+  unitPrice   Float
+  total       Float
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  invoiceId     String
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id])
+  amount        Float
+  paymentMethod String   // CASH, CARD, CHECK, TRANSFER
+  paymentDate   DateTime @default(now())
+  recordedBy    String
+  receiptNumber String   @unique // e.g. "REC-2026-0001"
+  notes         String?
+}
+
+model DailyCashClosure {
+  id             String    @id @default(uuid())
+  date           DateTime  @default(now())
+  closedBy       String    // Receptionist Name
+  openingAmount  Float     @default(1000.0) // Fond de caisse en MAD
+  cashCollected  Float     @default(0.0)
+  cardCollected  Float     @default(0.0)
+  checkCollected Float     @default(0.0)
+  totalCollected Float     @default(0.0)
+  expectedCash   Float     @default(0.0)
+  actualCash     Float     @default(0.0)
+  discrepancy    Float     @default(0.0)
+  status         String    @default("CLOSED") // OPEN, CLOSED
+  notes          String?
+  closedAt       DateTime  @default(now())
+}
+
+model MedicationStock {
+  id                 String          @id @default(uuid())
+  code               String          @unique // e.g. "MED-AMOX-1G"
+  name               String          // Nom commercial
+  category           String          // MEDICAMENT, CONSOMMABLE, MATERIEL, URGENCE
+  dci                String?         // Dénomination Commune Internationale
+  unit               String          // Boîte, Flacon, Ampoule, Pièce
+  currentQuantity    Int             @default(0)
+  minQuantityAlert   Int             @default(10)
+  expirationDate     DateTime
+  unitPrice          Float           @default(0.0) // Prix en MAD
+  location           String?         // Rayon / Étagère / Armoire d'urgence
+  batchNumber        String?         // N° de Lot
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  movements          StockMovement[]
+}
+
+model StockMovement {
+  id            String          @id @default(uuid())
+  medicationId  String
+  medication    MedicationStock @relation(fields: [medicationId], references: [id])
+  type          String          // IN, OUT, ADJUSTMENT
+  quantity      Int
+  reason        String          // Réception commande, Prescription, Périmé, Don
+  reference     String?         // N° Bon de livraison ou Ordonnance
+  performedBy   String
+  createdAt     DateTime        @default(now())
+}
+
+model StaffShift {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  shiftDate DateTime
+  shiftType String   // GARDE_NUIT, ASTREINTE_WEEKEND, JOUR_NORMAL, URGENCE
+  status    String   @default("SCHEDULED") // SCHEDULED, COMPLETED, SWAPPED
+  notes     String?
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  userName   String
+  userRole   String
+  action     String   // VIEW, CREATE, UPDATE, DELETE, ARCHIVE, RESTORE, EXPORT, LOGIN
+  entityType String   // PATIENT, CONSULTATION, INVOICE, PRESCRIPTION, STOCK, BED, SYSTEM
+  entityId   String?
+  details    String   // Description de l'action & conformité CNDP
+  ipAddress  String?
+  timestamp  DateTime @default(now())
+}

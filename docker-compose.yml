@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # Clinique Rif Nador EMR Application
+  clinique-app:
+    build: .
+    container_name: clinique_rif_nador_app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://clinique_admin:NadorMedical2026@db:5432/clinique_rif_db
+      - SECRET_KEY=clinique_rif_nador_cndp_secret_key_2026
+      - CLINIQUE_CITY=Nador
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backups:/app/backups
+      - ./uploads:/app/uploads
+
+  # PostgreSQL Database (Neon / Supabase compatible)
+  db:
+    image: postgres:15-alpine
+    container_name: clinique_rif_nador_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: clinique_admin
+      POSTGRES_PASSWORD: NadorMedical2026
+      POSTGRES_DB: clinique_rif_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema_and_seed.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clinique_admin -d clinique_rif_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta name="theme-color" content="#059669">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Clinique Rif Nador">
+    
+    <title>Clinique Médico-Chirurgicale du Rif - Nador | SIH & DME</title>
+
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23059669'><path d='M19 10.5h-5.5V5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v5.5H5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h5.5V19c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z'/></svg>">
+
+    <!-- Typographie Médicale & Arabe -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS (Local & Autonome) -->
+    <script src="/static/vendor/tailwindcss.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        arabic: ['Cairo', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Feuille de styles personnalisée -->
+    <link rel="stylesheet" href="/static/css/custom.css">
+
+    <!-- React 18 & ReactDOM 18 (Local & Autonome) -->
+    <script src="/static/vendor/react.js"></script>
+    <script src="/static/vendor/react-dom.js"></script>
+</head>
+<body class="h-full bg-slate-50 antialiased selection:bg-emerald-200">
+    <div id="root">
+        <!-- Loader d'initialisation -->
+        <div class="min-h-screen flex items-center justify-center bg-slate-900 text-white flex-col space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center text-2xl font-bold animate-pulse">
+                ✚
+            </div>
+            <h2 class="text-xl font-bold tracking-tight">Clinique Médico-Chirurgicale du Rif - Nador</h2>
+            <p class="text-xs text-emerald-400">Chargement du Système d'Information Hospitalier...</p>
+        </div>
+    </div>
+
+    <!-- Scripts de l'Application -->
+    <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/app.js"></script>
+
+    <!-- Enregistrement Service Worker PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('PWA Service Worker actif (Clinique Rif Nador):', reg.scope))
+                    .catch(err => console.log('PWA SW notice:', err));
+            });
+        }
+    </script>
+</body>
+</html>
