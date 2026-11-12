@@ -5,15 +5,17 @@ from seed_data import seed_database
 
 app = create_app()
 
-if __name__ == '__main__':
-    with app.app_context():
+# Initialisation automatique au chargement (essentiel pour Vercel Serverless & Production)
+with app.app_context():
+    try:
         db.create_all()
-        # Initialiser les données de démo si la base est vide
         if User.query.count() == 0:
-            print("Base de données vide. Insertion automatique des données de démo réalistes pour Nador...")
+            print("Initialisation automatique des données de démonstration pour Nador...")
             seed_database()
-            print("Données initialisées avec succès !")
+    except Exception as e:
+        print("Note d'initialisation de la base :", e)
 
+if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     print(f"\n=======================================================")
     print(f"  CLINIQUE MÉDICO-CHIRURGICALE DU RIF - NADOR (MAROC)  ")
@@ -21,3 +23,4 @@ if __name__ == '__main__':
     print(f"  URL: http://localhost:{port}                         ")
     print(f"=======================================================\n")
     app.run(host='0.0.0.0', port=port, debug=False)
+
