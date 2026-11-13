@@ -14,8 +14,20 @@ class Config:
             DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
         SQLALCHEMY_DATABASE_URI = DATABASE_URL
     else:
-        # Base locale SQLite par défaut
-        SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(BASE_DIR, 'clinique_nador.db')}"
+        # En environnement Vercel Serverless, /var/task est en lecture seule : utiliser /tmp
+        if os.environ.get('VERCEL'):
+            db_path = '/tmp/clinique_nador.db'
+            source_db = os.path.join(BASE_DIR, 'clinique_nador.db')
+            if os.path.exists(source_db) and not os.path.exists(db_path):
+                import shutil
+                try:
+                    shutil.copyfile(source_db, db_path)
+                except Exception:
+                    pass
+            SQLALCHEMY_DATABASE_URI = f"sqlite:///{db_path}"
+        else:
+            # Base locale SQLite standard
+            SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(BASE_DIR, 'clinique_nador.db')}"
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
@@ -35,6 +47,7 @@ class Config:
     CLINIC_PATENTE = "28471920"
     CLINIC_ICE = "002391823000045"
     
-    # Dossiers de stockage
-    UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
-    BACKUP_FOLDER = os.path.join(BASE_DIR, 'backups')
+    # Dossiers de stockage (utilisant /tmp sur Vercel Serverless)
+    UPLOAD_FOLDER = '/tmp/uploads' if os.environ.get('VERCEL') else os.path.join(BASE_DIR, 'uploads')
+    BACKUP_FOLDER = '/tmp/backups' if os.environ.get('VERCEL') else os.path.join(BASE_DIR, 'backups')
+
