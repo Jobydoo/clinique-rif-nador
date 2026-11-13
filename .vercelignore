@@ -1,0 +1,13 @@
+.venv
+.git
+.github
+tests/
+test_*.db*
+*.png
+.pytest_cache/
+server/
+prisma/
+backups/
+requirements-test.txt
+Dockerfile
+docker-compose.yml

@@ -3,7 +3,15 @@
   "builds": [
     {
       "src": "api/index.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "includeFiles": [
+          "app/**",
+          "seed_data.py",
+          "run.py",
+          "clinique_nador.db"
+        ]
+      }
     }
   ],
   "routes": [
